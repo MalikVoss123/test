@@ -34,10 +34,17 @@ export default function Home() {
   const nextDirectionRef = useRef(INITIAL_DIRECTION);
   const foodRef = useRef(randomCell(INITIAL_SNAKE));
   const [score, setScore] = useState(0);
-  const [gameOver, setGameOver] = useState(false);
+  const [screen, setScreen] = useState("start");
 
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (screen === "start") {
+        if (e.key === " ") {
+          e.preventDefault();
+          setScreen("playing");
+        }
+        return;
+      }
       const dir = directionRef.current;
       let next = null;
       if (e.key === "ArrowUp" && dir.y === 0) next = { x: 0, y: -1 };
@@ -51,10 +58,10 @@ export default function Home() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [screen]);
 
   useEffect(() => {
-    if (gameOver) return;
+    if (screen !== "playing") return;
     const ctx = canvasRef.current.getContext("2d");
     ctx.imageSmoothingEnabled = false;
 
@@ -72,7 +79,7 @@ export default function Home() {
       const hitSelf = snake.some((c) => c.x === head.x && c.y === head.y);
 
       if (hitWall || hitSelf) {
-        setGameOver(true);
+        setScreen("gameover");
         return;
       }
 
@@ -103,7 +110,7 @@ export default function Home() {
     }, TICK_MS);
 
     return () => clearInterval(interval);
-  }, [gameOver]);
+  }, [screen]);
 
   const restart = () => {
     snakeRef.current = INITIAL_SNAKE;
@@ -111,7 +118,7 @@ export default function Home() {
     nextDirectionRef.current = INITIAL_DIRECTION;
     foodRef.current = randomCell(INITIAL_SNAKE);
     setScore(0);
-    setGameOver(false);
+    setScreen("start");
   };
 
   return (
@@ -128,23 +135,38 @@ export default function Home() {
         gap: "12px",
       }}
     >
-      <h1>Snake</h1>
-      <p>Score: {score}</p>
-      <canvas
-        ref={canvasRef}
-        width={CANVAS_SIZE}
-        height={CANVAS_SIZE}
-        style={{ border: `2px solid ${PALETTE.border}` }}
-      />
-      {gameOver && (
+      {screen === "start" ? (
         <div style={{ textAlign: "center" }}>
-          <p>Game Over!</p>
-          <button onClick={restart} style={{ padding: "8px 16px", fontSize: "16px" }}>
-            Restart
-          </button>
+          <h1>Snake</h1>
+          <p style={{ opacity: 0.6 }}>Use arrow keys to move</p>
+          <p
+            onClick={() => setScreen("playing")}
+            style={{ cursor: "pointer", fontSize: "18px", marginTop: "16px" }}
+          >
+            Press Space to Start
+          </p>
         </div>
+      ) : (
+        <>
+          <h1>Snake</h1>
+          <p>Score: {score}</p>
+          <canvas
+            ref={canvasRef}
+            width={CANVAS_SIZE}
+            height={CANVAS_SIZE}
+            style={{ border: `2px solid ${PALETTE.border}` }}
+          />
+          {screen === "gameover" && (
+            <div style={{ textAlign: "center" }}>
+              <p>Game Over!</p>
+              <button onClick={restart} style={{ padding: "8px 16px", fontSize: "16px" }}>
+                Restart
+              </button>
+            </div>
+          )}
+          <p style={{ opacity: 0.6 }}>Use arrow keys to control the snake</p>
+        </>
       )}
-      <p style={{ opacity: 0.6 }}>Use arrow keys to control the snake</p>
     </div>
   );
 }
