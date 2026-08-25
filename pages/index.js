@@ -7,6 +7,15 @@ const INITIAL_SNAKE = [{ x: 10, y: 10 }];
 const INITIAL_DIRECTION = { x: 0, y: -1 };
 const TICK_MS = 120;
 
+const PALETTE = {
+  outerBg: "#0a0a0a",
+  bg: "#111111",
+  border: "#333333",
+  text: "#ffffff",
+  snake: "#2a9d8f",
+  food: "#e63946",
+};
+
 function randomCell(exclude) {
   let cell;
   do {
@@ -47,6 +56,7 @@ export default function Home() {
   useEffect(() => {
     if (gameOver) return;
     const ctx = canvasRef.current.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
 
     const interval = setInterval(() => {
       directionRef.current = nextDirectionRef.current;
@@ -75,10 +85,10 @@ export default function Home() {
       }
       snakeRef.current = newSnake;
 
-      ctx.fillStyle = "#111";
+      ctx.fillStyle = PALETTE.bg;
       ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
-      ctx.fillStyle = "#e63946";
+      ctx.fillStyle = PALETTE.food;
       ctx.fillRect(
         foodRef.current.x * CELL_SIZE,
         foodRef.current.y * CELL_SIZE,
@@ -86,7 +96,7 @@ export default function Home() {
         CELL_SIZE
       );
 
-      ctx.fillStyle = "#2a9d8f";
+      ctx.fillStyle = PALETTE.snake;
       newSnake.forEach((c) => {
         ctx.fillRect(c.x * CELL_SIZE, c.y * CELL_SIZE, CELL_SIZE - 1, CELL_SIZE - 1);
       });
@@ -112,8 +122,8 @@ export default function Home() {
         alignItems: "center",
         justifyContent: "center",
         minHeight: "100vh",
-        background: "#0a0a0a",
-        color: "#fff",
+        background: PALETTE.outerBg,
+        color: PALETTE.text,
         fontFamily: "sans-serif",
         gap: "12px",
       }}
@@ -124,7 +134,7 @@ export default function Home() {
         ref={canvasRef}
         width={CANVAS_SIZE}
         height={CANVAS_SIZE}
-        style={{ border: "2px solid #333" }}
+        style={{ border: `2px solid ${PALETTE.border}` }}
       />
       {gameOver && (
         <div style={{ textAlign: "center" }}>
