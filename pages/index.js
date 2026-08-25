@@ -130,6 +130,26 @@ function drawTitleArt(ctx) {
   ctx.strokeRect(1, 1, TITLE_CANVAS_WIDTH - 2, TITLE_CANVAS_HEIGHT - 2);
 }
 
+const HUD_PADDING = 6;
+const HUD_HEIGHT = 26;
+
+function drawScoreHud(ctx, score, highScore, isNewBest) {
+  ctx.fillStyle = PALETTE.bg;
+  ctx.globalAlpha = 0.85;
+  drawRoundedRect(ctx, HUD_PADDING, HUD_PADDING, CANVAS_SIZE - HUD_PADDING * 2, HUD_HEIGHT, 6);
+  ctx.globalAlpha = 1;
+
+  ctx.font = "bold 14px sans-serif";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = PALETTE.text;
+  ctx.textAlign = "left";
+  ctx.fillText(`Score: ${score}`, HUD_PADDING + 10, HUD_PADDING + HUD_HEIGHT / 2 + 1);
+
+  ctx.textAlign = "right";
+  ctx.fillStyle = isNewBest ? PALETTE.food : PALETTE.text;
+  ctx.fillText(`Best: ${highScore}`, CANVAS_SIZE - HUD_PADDING - 10, HUD_PADDING + HUD_HEIGHT / 2 + 1);
+}
+
 function randomCell(exclude) {
   let cell;
   do {
@@ -148,12 +168,23 @@ export default function Home() {
   const directionRef = useRef(INITIAL_DIRECTION);
   const nextDirectionRef = useRef(INITIAL_DIRECTION);
   const foodRef = useRef(randomCell(INITIAL_SNAKE));
+  const scoreRef = useRef(0);
   const [score, setScore] = useState(0);
+  const [highScore, setHighScore] = useState(0);
   const [screen, setScreen] = useState("start");
   const [paused, setPaused] = useState(false);
   const [resumeCountdown, setResumeCountdown] = useState(null);
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
   const pausedRef = useRef(false);
+  const highScoreRef = useRef(0);
+
+  useEffect(() => {
+    const stored = Number(window.localStorage.getItem("snake-high-score"));
+    if (!Number.isNaN(stored) && stored > 0) {
+      setHighScore(stored);
+      highScoreRef.current = stored;
+    }
+  }, []);
 
   useEffect(() => {
     pausedRef.current = paused;
@@ -241,7 +272,13 @@ export default function Home() {
 
       const newSnake = [head, ...snake];
       if (head.x === foodRef.current.x && head.y === foodRef.current.y) {
-        setScore((s) => s + 1);
+        scoreRef.current += 1;
+        setScore(scoreRef.current);
+        if (scoreRef.current > highScoreRef.current) {
+          highScoreRef.current = scoreRef.current;
+          setHighScore(scoreRef.current);
+          window.localStorage.setItem("snake-high-score", String(scoreRef.current));
+        }
         foodRef.current = randomCell(newSnake);
       } else {
         newSnake.pop();
@@ -321,6 +358,8 @@ export default function Home() {
           ctx.fill();
         });
       }
+
+      drawScoreHud(ctx, scoreRef.current, highScoreRef.current, scoreRef.current === highScoreRef.current && scoreRef.current > 0);
     }, speedToTickMs(speed));
 
     return () => clearInterval(interval);
@@ -331,6 +370,7 @@ export default function Home() {
     directionRef.current = INITIAL_DIRECTION;
     nextDirectionRef.current = INITIAL_DIRECTION;
     foodRef.current = randomCell(INITIAL_SNAKE);
+    scoreRef.current = 0;
     setScore(0);
     setPaused(false);
     setResumeCountdown(null);
@@ -391,7 +431,9 @@ export default function Home() {
       ) : (
         <>
           <h1>Snake</h1>
-          <p>Score: {score}</p>
+          <p>
+            Score: {score} &nbsp;·&nbsp; Best: {highScore}
+          </p>
           <div style={{ position: "relative" }}>
             <canvas
               ref={canvasRef}
