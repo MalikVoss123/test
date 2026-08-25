@@ -5,7 +5,16 @@ const CELL_SIZE = 20;
 const CANVAS_SIZE = GRID_SIZE * CELL_SIZE;
 const INITIAL_SNAKE = [{ x: 10, y: 10 }];
 const INITIAL_DIRECTION = { x: 0, y: -1 };
-const TICK_MS = 120;
+const MIN_SPEED = 1;
+const MAX_SPEED = 10;
+const DEFAULT_SPEED = 5;
+const SLOWEST_TICK_MS = 200;
+const FASTEST_TICK_MS = 40;
+
+function speedToTickMs(speed) {
+  const ratio = (speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED);
+  return Math.round(SLOWEST_TICK_MS - ratio * (SLOWEST_TICK_MS - FASTEST_TICK_MS));
+}
 
 const PALETTE = {
   outerBg: "#0a0a0a",
@@ -53,6 +62,7 @@ export default function Home() {
   const [screen, setScreen] = useState("start");
   const [paused, setPaused] = useState(false);
   const [resumeCountdown, setResumeCountdown] = useState(null);
+  const [speed, setSpeed] = useState(DEFAULT_SPEED);
   const pausedRef = useRef(false);
 
   useEffect(() => {
@@ -215,10 +225,10 @@ export default function Home() {
           ctx.fill();
         });
       }
-    }, TICK_MS);
+    }, speedToTickMs(speed));
 
     return () => clearInterval(interval);
-  }, [screen]);
+  }, [screen, speed]);
 
   const restart = () => {
     snakeRef.current = INITIAL_SNAKE;
@@ -249,6 +259,22 @@ export default function Home() {
         <div style={{ textAlign: "center" }}>
           <h1>Snake</h1>
           <p style={{ opacity: 0.6 }}>Use arrow keys to move</p>
+          <div style={{ marginTop: "16px" }}>
+            <label htmlFor="speed-slider" style={{ opacity: 0.8, fontSize: "14px" }}>
+              Speed: {speed}
+            </label>
+            <br />
+            <input
+              id="speed-slider"
+              type="range"
+              min={MIN_SPEED}
+              max={MAX_SPEED}
+              step={1}
+              value={speed}
+              onChange={(e) => setSpeed(Number(e.target.value))}
+              style={{ marginTop: "4px" }}
+            />
+          </div>
           <p
             onClick={() => setScreen("playing")}
             style={{ cursor: "pointer", fontSize: "18px", marginTop: "16px" }}
@@ -276,15 +302,39 @@ export default function Home() {
                   width: CANVAS_SIZE,
                   height: CANVAS_SIZE,
                   display: "flex",
+                  flexDirection: "column",
                   alignItems: "center",
                   justifyContent: "center",
                   background: PALETTE.bg,
                   opacity: 0.85,
                   color: PALETTE.text,
                   fontSize: "24px",
+                  gap: "12px",
                 }}
               >
-                {resumeCountdown !== null ? resumeCountdown : "Paused"}
+                {resumeCountdown !== null ? (
+                  resumeCountdown
+                ) : (
+                  <>
+                    <span>Paused</span>
+                    <div style={{ fontSize: "14px", textAlign: "center" }}>
+                      <label htmlFor="pause-speed-slider" style={{ opacity: 0.8 }}>
+                        Speed: {speed}
+                      </label>
+                      <br />
+                      <input
+                        id="pause-speed-slider"
+                        type="range"
+                        min={MIN_SPEED}
+                        max={MAX_SPEED}
+                        step={1}
+                        value={speed}
+                        onChange={(e) => setSpeed(Number(e.target.value))}
+                        style={{ marginTop: "4px" }}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
