@@ -36,11 +36,27 @@ export default function Home() {
   const [score, setScore] = useState(0);
   const [screen, setScreen] = useState("start");
   const [paused, setPaused] = useState(false);
+  const [resumeCountdown, setResumeCountdown] = useState(null);
   const pausedRef = useRef(false);
 
   useEffect(() => {
     pausedRef.current = paused;
   }, [paused]);
+
+  useEffect(() => {
+    if (resumeCountdown === null) return;
+    if (resumeCountdown === "GO") {
+      const timeout = setTimeout(() => {
+        setResumeCountdown(null);
+        setPaused(false);
+      }, 500);
+      return () => clearTimeout(timeout);
+    }
+    const timeout = setTimeout(() => {
+      setResumeCountdown((c) => (c === 1 ? "GO" : c - 1));
+    }, 700);
+    return () => clearTimeout(timeout);
+  }, [resumeCountdown]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -53,7 +69,12 @@ export default function Home() {
       }
       if (screen === "playing" && e.key === " ") {
         e.preventDefault();
-        setPaused((p) => !p);
+        if (resumeCountdown !== null) return;
+        if (paused) {
+          setResumeCountdown(3);
+        } else {
+          setPaused(true);
+        }
         return;
       }
       if (screen !== "playing") return;
@@ -70,7 +91,7 @@ export default function Home() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [screen]);
+  }, [screen, paused, resumeCountdown]);
 
   useEffect(() => {
     if (screen !== "playing") return;
@@ -132,6 +153,7 @@ export default function Home() {
     foodRef.current = randomCell(INITIAL_SNAKE);
     setScore(0);
     setPaused(false);
+    setResumeCountdown(null);
     setScreen("start");
   };
 
@@ -188,7 +210,7 @@ export default function Home() {
                   fontSize: "24px",
                 }}
               >
-                Paused
+                {resumeCountdown !== null ? resumeCountdown : "Paused"}
               </div>
             )}
           </div>
@@ -200,7 +222,9 @@ export default function Home() {
               </button>
             </div>
           )}
-          <p style={{ opacity: 0.6 }}>Use arrow keys to control the snake</p>
+          <p style={{ opacity: 0.6 }}>
+            Use arrow keys to control the snake, Space to pause
+          </p>
         </>
       )}
     </div>
