@@ -35,6 +35,12 @@ export default function Home() {
   const foodRef = useRef(randomCell(INITIAL_SNAKE));
   const [score, setScore] = useState(0);
   const [screen, setScreen] = useState("start");
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
+
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -45,6 +51,12 @@ export default function Home() {
         }
         return;
       }
+      if (screen === "playing" && e.key === " ") {
+        e.preventDefault();
+        setPaused((p) => !p);
+        return;
+      }
+      if (screen !== "playing") return;
       const dir = directionRef.current;
       let next = null;
       if (e.key === "ArrowUp" && dir.y === 0) next = { x: 0, y: -1 };
@@ -66,6 +78,7 @@ export default function Home() {
     ctx.imageSmoothingEnabled = false;
 
     const interval = setInterval(() => {
+      if (pausedRef.current) return;
       directionRef.current = nextDirectionRef.current;
       const dir = directionRef.current;
       const snake = snakeRef.current;
@@ -118,6 +131,7 @@ export default function Home() {
     nextDirectionRef.current = INITIAL_DIRECTION;
     foodRef.current = randomCell(INITIAL_SNAKE);
     setScore(0);
+    setPaused(false);
     setScreen("start");
   };
 
@@ -150,12 +164,34 @@ export default function Home() {
         <>
           <h1>Snake</h1>
           <p>Score: {score}</p>
-          <canvas
-            ref={canvasRef}
-            width={CANVAS_SIZE}
-            height={CANVAS_SIZE}
-            style={{ border: `2px solid ${PALETTE.border}` }}
-          />
+          <div style={{ position: "relative" }}>
+            <canvas
+              ref={canvasRef}
+              width={CANVAS_SIZE}
+              height={CANVAS_SIZE}
+              style={{ border: `2px solid ${PALETTE.border}` }}
+            />
+            {paused && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: CANVAS_SIZE,
+                  height: CANVAS_SIZE,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: PALETTE.bg,
+                  opacity: 0.85,
+                  color: PALETTE.text,
+                  fontSize: "24px",
+                }}
+              >
+                Paused
+              </div>
+            )}
+          </div>
           {screen === "gameover" && (
             <div style={{ textAlign: "center" }}>
               <p>Game Over!</p>
