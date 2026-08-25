@@ -10,11 +10,27 @@ const TICK_MS = 120;
 const PALETTE = {
   outerBg: "#0a0a0a",
   bg: "#111111",
+  bgGrid: "#1a1a1a",
   border: "#333333",
   text: "#ffffff",
-  snake: "#2a9d8f",
+  snakeHead: "#40c9b8",
+  snakeBody: "#2a9d8f",
+  snakeBodyDark: "#1f7a70",
+  snakeEye: "#0a0a0a",
   food: "#e63946",
+  foodGlow: "rgba(230, 57, 70, 0.35)",
 };
+
+function drawRoundedRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+  ctx.fill();
+}
 
 function randomCell(exclude) {
   let cell;
@@ -129,18 +145,76 @@ export default function Home() {
       ctx.fillStyle = PALETTE.bg;
       ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
-      ctx.fillStyle = PALETTE.food;
-      ctx.fillRect(
-        foodRef.current.x * CELL_SIZE,
-        foodRef.current.y * CELL_SIZE,
-        CELL_SIZE,
-        CELL_SIZE
-      );
+      ctx.strokeStyle = PALETTE.bgGrid;
+      ctx.lineWidth = 1;
+      for (let i = 1; i < GRID_SIZE; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * CELL_SIZE + 0.5, 0);
+        ctx.lineTo(i * CELL_SIZE + 0.5, CANVAS_SIZE);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, i * CELL_SIZE + 0.5);
+        ctx.lineTo(CANVAS_SIZE, i * CELL_SIZE + 0.5);
+        ctx.stroke();
+      }
 
-      ctx.fillStyle = PALETTE.snake;
-      newSnake.forEach((c) => {
-        ctx.fillRect(c.x * CELL_SIZE, c.y * CELL_SIZE, CELL_SIZE - 1, CELL_SIZE - 1);
+      const foodCx = foodRef.current.x * CELL_SIZE + CELL_SIZE / 2;
+      const foodCy = foodRef.current.y * CELL_SIZE + CELL_SIZE / 2;
+      const foodRadius = CELL_SIZE / 2 - 2;
+      ctx.fillStyle = PALETTE.foodGlow;
+      ctx.beginPath();
+      ctx.arc(foodCx, foodCy, foodRadius + 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = PALETTE.food;
+      ctx.beginPath();
+      ctx.arc(foodCx, foodCy, foodRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      const inset = 1;
+      newSnake.forEach((c, i) => {
+        const isHead = i === 0;
+        ctx.fillStyle = isHead
+          ? PALETTE.snakeHead
+          : i % 2 === 0
+          ? PALETTE.snakeBody
+          : PALETTE.snakeBodyDark;
+        drawRoundedRect(
+          ctx,
+          c.x * CELL_SIZE + inset,
+          c.y * CELL_SIZE + inset,
+          CELL_SIZE - inset * 2,
+          CELL_SIZE - inset * 2,
+          isHead ? 6 : 4
+        );
       });
+
+      if (newSnake.length > 0) {
+        const head = newSnake[0];
+        const hx = head.x * CELL_SIZE;
+        const hy = head.y * CELL_SIZE;
+        const eyeOffset = CELL_SIZE * 0.28;
+        const eyeRadius = Math.max(1.5, CELL_SIZE * 0.09);
+        const perpX = dir.y !== 0 ? 1 : 0;
+        const perpY = dir.x !== 0 ? 1 : 0;
+        const forwardX = dir.x * eyeOffset;
+        const forwardY = dir.y * eyeOffset;
+        const sideX = perpX * eyeOffset;
+        const sideY = perpY * eyeOffset;
+        const cx = hx + CELL_SIZE / 2;
+        const cy = hy + CELL_SIZE / 2;
+        ctx.fillStyle = PALETTE.snakeEye;
+        [1, -1].forEach((s) => {
+          ctx.beginPath();
+          ctx.arc(
+            cx + forwardX + sideX * s,
+            cy + forwardY + sideY * s,
+            eyeRadius,
+            0,
+            Math.PI * 2
+          );
+          ctx.fill();
+        });
+      }
     }, TICK_MS);
 
     return () => clearInterval(interval);
