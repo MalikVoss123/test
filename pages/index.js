@@ -41,6 +41,95 @@ function drawRoundedRect(ctx, x, y, w, h, r) {
   ctx.fill();
 }
 
+const TITLE_COLS = 26;
+const TITLE_ROWS = 16;
+const TITLE_PIXEL = 12;
+const TITLE_CANVAS_WIDTH = TITLE_COLS * TITLE_PIXEL;
+const TITLE_CANVAS_HEIGHT = TITLE_ROWS * TITLE_PIXEL;
+
+const TITLE_LEFT_SNAKE = [
+  { x: 1, y: 9 },
+  { x: 2, y: 9 },
+  { x: 3, y: 8 },
+  { x: 4, y: 8 },
+  { x: 5, y: 9 },
+  { x: 6, y: 9 },
+  { x: 7, y: 8 },
+  { x: 8, y: 8 },
+  { x: 9, y: 7 },
+  { x: 10, y: 6 },
+];
+
+const TITLE_RIGHT_SNAKE = [
+  { x: 24, y: 9 },
+  { x: 23, y: 9 },
+  { x: 22, y: 8 },
+  { x: 21, y: 8 },
+  { x: 20, y: 9 },
+  { x: 19, y: 9 },
+  { x: 18, y: 8 },
+  { x: 17, y: 8 },
+  { x: 16, y: 7 },
+  { x: 15, y: 6 },
+];
+
+const TITLE_FOOD_CELLS = [
+  { x: 12, y: 5 },
+  { x: 13, y: 5 },
+];
+
+function drawTitleArt(ctx) {
+  ctx.imageSmoothingEnabled = false;
+
+  for (let y = 0; y < TITLE_ROWS; y++) {
+    for (let x = 0; x < TITLE_COLS; x++) {
+      ctx.fillStyle = (x + y) % 2 === 0 ? PALETTE.bg : PALETTE.bgGrid;
+      ctx.fillRect(x * TITLE_PIXEL, y * TITLE_PIXEL, TITLE_PIXEL, TITLE_PIXEL);
+    }
+  }
+
+  const drawPixel = (x, y, color) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(x * TITLE_PIXEL, y * TITLE_PIXEL, TITLE_PIXEL, TITLE_PIXEL);
+  };
+
+  TITLE_FOOD_CELLS.forEach((c) => drawPixel(c.x, c.y, PALETTE.foodGlow));
+  TITLE_FOOD_CELLS.forEach((c) => drawPixel(c.x, c.y, PALETTE.food));
+
+  [
+    { snake: TITLE_LEFT_SNAKE, headColor: PALETTE.snakeHead, evenColor: PALETTE.snakeBody, oddColor: PALETTE.snakeBodyDark },
+    { snake: TITLE_RIGHT_SNAKE, headColor: PALETTE.snakeBodyDark, evenColor: PALETTE.snakeBodyDark, oddColor: PALETTE.snakeBody },
+  ].forEach(({ snake, headColor, evenColor, oddColor }) => {
+    snake.forEach((c, i) => {
+      const isHead = i === snake.length - 1;
+      const color = isHead ? headColor : i % 2 === 0 ? evenColor : oddColor;
+      drawPixel(c.x, c.y, color);
+    });
+  });
+
+  const drawEye = (headCell, facingRight) => {
+    ctx.fillStyle = PALETTE.snakeEye;
+    const ex = headCell.x * TITLE_PIXEL + (facingRight ? TITLE_PIXEL * 0.6 : TITLE_PIXEL * 0.15);
+    const ey = headCell.y * TITLE_PIXEL + TITLE_PIXEL * 0.25;
+    ctx.fillRect(ex, ey, TITLE_PIXEL * 0.25, TITLE_PIXEL * 0.25);
+  };
+  drawEye(TITLE_LEFT_SNAKE[TITLE_LEFT_SNAKE.length - 1], true);
+  drawEye(TITLE_RIGHT_SNAKE[TITLE_RIGHT_SNAKE.length - 1], false);
+
+  const drawTongue = (headCell, facingRight) => {
+    ctx.fillStyle = PALETTE.food;
+    const tx = headCell.x * TITLE_PIXEL + (facingRight ? TITLE_PIXEL : -TITLE_PIXEL * 0.35);
+    const ty = headCell.y * TITLE_PIXEL + TITLE_PIXEL * 0.4;
+    ctx.fillRect(tx, ty, TITLE_PIXEL * 0.35, TITLE_PIXEL * 0.2);
+  };
+  drawTongue(TITLE_LEFT_SNAKE[TITLE_LEFT_SNAKE.length - 1], true);
+  drawTongue(TITLE_RIGHT_SNAKE[TITLE_RIGHT_SNAKE.length - 1], false);
+
+  ctx.strokeStyle = PALETTE.border;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, TITLE_CANVAS_WIDTH - 2, TITLE_CANVAS_HEIGHT - 2);
+}
+
 function randomCell(exclude) {
   let cell;
   do {
@@ -54,6 +143,7 @@ function randomCell(exclude) {
 
 export default function Home() {
   const canvasRef = useRef(null);
+  const titleCanvasRef = useRef(null);
   const snakeRef = useRef(INITIAL_SNAKE);
   const directionRef = useRef(INITIAL_DIRECTION);
   const nextDirectionRef = useRef(INITIAL_DIRECTION);
@@ -68,6 +158,12 @@ export default function Home() {
   useEffect(() => {
     pausedRef.current = paused;
   }, [paused]);
+
+  useEffect(() => {
+    if (screen !== "start" || !titleCanvasRef.current) return;
+    const ctx = titleCanvasRef.current.getContext("2d");
+    drawTitleArt(ctx);
+  }, [screen]);
 
   useEffect(() => {
     if (resumeCountdown === null) return;
@@ -258,6 +354,16 @@ export default function Home() {
       {screen === "start" ? (
         <div style={{ textAlign: "center" }}>
           <h1>Snake</h1>
+          <canvas
+            ref={titleCanvasRef}
+            width={TITLE_CANVAS_WIDTH}
+            height={TITLE_CANVAS_HEIGHT}
+            style={{
+              imageRendering: "pixelated",
+              border: `2px solid ${PALETTE.border}`,
+              marginTop: "8px",
+            }}
+          />
           <p style={{ opacity: 0.6 }}>Use arrow keys to move</p>
           <div style={{ marginTop: "16px" }}>
             <label htmlFor="speed-slider" style={{ opacity: 0.8, fontSize: "14px" }}>
